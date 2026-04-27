@@ -11,7 +11,6 @@ Backend API implementation for the Insurance Management System challenge using `
 ### Run Locally
 
 ```powershell
-dotnet restore Insurance.Api.sln
 dotnet build Insurance.Api.sln
 dotnet run --project src/Insurance.Api/Insurance.Api.csproj
 ```
