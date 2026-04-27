@@ -1,4 +1,5 @@
 using Insurance.Api.Contracts.Policies;
+using Insurance.Api.Domain.Enums;
 using Insurance.Api.Domain.Exceptions;
 using Insurance.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -41,9 +42,14 @@ public class PoliciesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<PolicyResponse>>> GetAll(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<PolicyResponse>>> GetAll(
+        [FromQuery] int? customerId,
+        [FromQuery] PolicyType? type,
+        [FromQuery] bool? active,
+        [FromQuery] PolicyStatus? status,
+        CancellationToken cancellationToken)
     {
-        var policies = await _policyService.GetAllAsync(cancellationToken);
+        var policies = await _policyService.GetAllAsync(customerId, type, active, status, cancellationToken);
         return Ok(policies);
     }
 
@@ -75,6 +81,24 @@ public class PoliciesController : ControllerBase
         catch (ValidationException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id:int}/cancel")]
+    public async Task<ActionResult<PolicyResponse>> Cancel(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var cancelled = await _policyService.CancelAsync(id, cancellationToken);
+            return Ok(cancelled);
         }
         catch (NotFoundException ex)
         {

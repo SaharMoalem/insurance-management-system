@@ -1,6 +1,7 @@
 using Insurance.Api.Contracts.Policies;
 using Insurance.Api.Data;
 using Insurance.Api.Domain.Entities;
+using Insurance.Api.Domain.Enums;
 using Insurance.Api.Domain.Exceptions;
 using Insurance.Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -21,12 +22,13 @@ public class PolicyService : IPolicyService
         await EnsureCustomerExistsAsync(request.CustomerId, cancellationToken);
         await EnsurePolicyNumberUniqueAsync(request.PolicyNumber, null, cancellationToken);
         ValidatePolicyDatesAndPremium(request.StartDate, request.EndDate, request.PremiumAmount);
+        await EnsureNoDuplicateActivePolicyTypeAsync(request.CustomerId, request.Type, null, cancellationToken);
 
         var policy = new Policy
         {
             PolicyNumber = request.PolicyNumber.Trim(),
             Type = request.Type,
-            Status = Domain.Enums.PolicyStatus.Active,
+            Status = PolicyStatus.Active,
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             PremiumAmount = request.PremiumAmount,
@@ -38,10 +40,45 @@ public class PolicyService : IPolicyService
         return Map(policy);
     }
 
-    public async Task<IReadOnlyList<PolicyResponse>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PolicyResponse>> GetAllAsync(
+        int? customerId = null,
+        PolicyType? type = null,
+        bool? active = null,
+        PolicyStatus? status = null,
+        CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Policies
+        var query = _dbContext.Policies
             .AsNoTracking()
+            .AsQueryable();
+
+        if (customerId.HasValue)
+        {
+            query = query.Where(x => x.CustomerId == customerId.Value);
+        }
+
+        if (type.HasValue)
+        {
+            query = query.Where(x => x.Type == type.Value);
+        }
+
+        if (status.HasValue)
+        {
+            query = query.Where(x => x.Status == status.Value);
+        }
+
+        if (active.HasValue)
+        {
+            if (active.Value)
+            {
+                query = query.Where(x => x.Status == PolicyStatus.Active);
+            }
+            else
+            {
+                query = query.Where(x => x.Status != PolicyStatus.Active);
+            }
+        }
+
+        return await query
             .OrderBy(x => x.Id)
             .Select(x => Map(x))
             .ToListAsync(cancellationToken);
@@ -74,6 +111,10 @@ public class PolicyService : IPolicyService
         await EnsureCustomerExistsAsync(request.CustomerId, cancellationToken);
         await EnsurePolicyNumberUniqueAsync(request.PolicyNumber, id, cancellationToken);
         ValidatePolicyDatesAndPremium(request.StartDate, request.EndDate, request.PremiumAmount);
+        if (policy.Status == PolicyStatus.Active)
+        {
+            await EnsureNoDuplicateActivePolicyTypeAsync(request.CustomerId, request.Type, id, cancellationToken);
+        }
 
         policy.PolicyNumber = request.PolicyNumber.Trim();
         policy.Type = request.Type;
@@ -82,6 +123,26 @@ public class PolicyService : IPolicyService
         policy.PremiumAmount = request.PremiumAmount;
         policy.CustomerId = request.CustomerId;
 
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return Map(policy);
+    }
+
+    public async Task<PolicyResponse> CancelAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var policy = await _dbContext.Policies
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+        if (policy is null)
+        {
+            throw new NotFoundException($"Policy with id '{id}' was not found.");
+        }
+
+        if (policy.Status != PolicyStatus.Active)
+        {
+            throw new ConflictException($"Policy with id '{id}' cannot be cancelled from status '{policy.Status}'.");
+        }
+
+        policy.Status = PolicyStatus.Cancelled;
         await _dbContext.SaveChangesAsync(cancellationToken);
         return Map(policy);
     }
@@ -109,6 +170,28 @@ public class PolicyService : IPolicyService
         if (exists)
         {
             throw new ConflictException($"A policy with number '{normalizedPolicyNumber}' already exists.");
+        }
+    }
+
+    private async Task EnsureNoDuplicateActivePolicyTypeAsync(
+        int customerId,
+        PolicyType type,
+        int? existingPolicyId,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.Policies
+            .Where(x => x.CustomerId == customerId && x.Type == type && x.Status == PolicyStatus.Active);
+
+        if (existingPolicyId.HasValue)
+        {
+            query = query.Where(x => x.Id != existingPolicyId.Value);
+        }
+
+        var exists = await query.AnyAsync(cancellationToken);
+        if (exists)
+        {
+            throw new ConflictException(
+                $"Customer '{customerId}' already has an active policy of type '{type}'.");
         }
     }
 
