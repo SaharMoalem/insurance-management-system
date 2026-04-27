@@ -1,5 +1,7 @@
 using Insurance.Api.Data;
+using Insurance.Api.Contracts.Common;
 using Insurance.Api.Extensions;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 
@@ -12,7 +14,38 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var firstError = context.ModelState.Values
+            .SelectMany(x => x.Errors)
+            .Select(x => x.ErrorMessage)
+            .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+
+        var message = firstError ?? "One or more validation errors occurred.";
+        var error = new ApiErrorResponse
+        {
+            Code = "validation_error",
+            Message = message
+        };
+
+        var problem = new ValidationProblemDetails(context.ModelState)
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Type = "about:blank",
+            Title = "Bad Request",
+            Detail = message
+        };
+        problem.Extensions["error"] = error;
+
+        return new BadRequestObjectResult(problem)
+        {
+            ContentTypes = { "application/problem+json" }
+        };
+    };
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddApplicationServices();

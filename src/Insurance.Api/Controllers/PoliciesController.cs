@@ -1,6 +1,5 @@
 using Insurance.Api.Contracts.Policies;
 using Insurance.Api.Domain.Enums;
-using Insurance.Api.Domain.Exceptions;
 using Insurance.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,23 +21,8 @@ public class PoliciesController : ControllerBase
         [FromBody] CreatePolicyRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var created = await _policyService.CreateAsync(request, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (ConflictException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
+        var created = await _policyService.CreateAsync(request, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     [HttpGet]
@@ -56,15 +40,8 @@ public class PoliciesController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<PolicyResponse>> GetById(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var policy = await _policyService.GetByIdAsync(id, cancellationToken);
-            return Ok(policy);
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var policy = await _policyService.GetByIdAsync(id, cancellationToken);
+        return Ok(policy);
     }
 
     [HttpPut("{id:int}")]
@@ -73,40 +50,14 @@ public class PoliciesController : ControllerBase
         [FromBody] UpdatePolicyRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var updated = await _policyService.UpdateAsync(id, request, cancellationToken);
-            return Ok(updated);
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (ConflictException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
+        var updated = await _policyService.UpdateAsync(id, request, cancellationToken);
+        return Ok(updated);
     }
 
     [HttpPost("{id:int}/cancel")]
     public async Task<ActionResult<PolicyResponse>> Cancel(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var cancelled = await _policyService.CancelAsync(id, cancellationToken);
-            return Ok(cancelled);
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (ConflictException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
+        var cancelled = await _policyService.CancelAsync(id, cancellationToken);
+        return Ok(cancelled);
     }
 }

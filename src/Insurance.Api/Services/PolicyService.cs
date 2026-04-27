@@ -92,7 +92,7 @@ public class PolicyService : IPolicyService
 
         if (policy is null)
         {
-            throw new NotFoundException($"Policy with id '{id}' was not found.");
+            throw new NotFoundException("policy_not_found", $"Policy with id '{id}' was not found.");
         }
 
         return Map(policy);
@@ -105,7 +105,7 @@ public class PolicyService : IPolicyService
 
         if (policy is null)
         {
-            throw new NotFoundException($"Policy with id '{id}' was not found.");
+            throw new NotFoundException("policy_not_found", $"Policy with id '{id}' was not found.");
         }
 
         await EnsureCustomerExistsAsync(request.CustomerId, cancellationToken);
@@ -134,12 +134,14 @@ public class PolicyService : IPolicyService
 
         if (policy is null)
         {
-            throw new NotFoundException($"Policy with id '{id}' was not found.");
+            throw new NotFoundException("policy_not_found", $"Policy with id '{id}' was not found.");
         }
 
         if (policy.Status != PolicyStatus.Active)
         {
-            throw new ConflictException($"Policy with id '{id}' cannot be cancelled from status '{policy.Status}'.");
+            throw new ConflictException(
+                "invalid_policy_status_transition",
+                $"Policy with id '{id}' cannot be cancelled from status '{policy.Status}'.");
         }
 
         policy.Status = PolicyStatus.Cancelled;
@@ -152,7 +154,7 @@ public class PolicyService : IPolicyService
         var exists = await _dbContext.Customers.AnyAsync(x => x.Id == customerId, cancellationToken);
         if (!exists)
         {
-            throw new NotFoundException($"Customer with id '{customerId}' was not found.");
+            throw new NotFoundException("customer_not_found", $"Customer with id '{customerId}' was not found.");
         }
     }
 
@@ -169,7 +171,9 @@ public class PolicyService : IPolicyService
         var exists = await query.AnyAsync(x => x.PolicyNumber == normalizedPolicyNumber, cancellationToken);
         if (exists)
         {
-            throw new ConflictException($"A policy with number '{normalizedPolicyNumber}' already exists.");
+            throw new ConflictException(
+                "duplicate_policy_number",
+                $"A policy with number '{normalizedPolicyNumber}' already exists.");
         }
     }
 
@@ -191,6 +195,7 @@ public class PolicyService : IPolicyService
         if (exists)
         {
             throw new ConflictException(
+                "duplicate_active_policy_type",
                 $"Customer '{customerId}' already has an active policy of type '{type}'.");
         }
     }
@@ -199,12 +204,12 @@ public class PolicyService : IPolicyService
     {
         if (startDate >= endDate)
         {
-            throw new ValidationException("Policy start date must be earlier than end date.");
+            throw new ValidationException("invalid_policy_date_range", "Policy start date must be earlier than end date.");
         }
 
         if (premiumAmount <= 0)
         {
-            throw new ValidationException("Policy premium amount must be greater than zero.");
+            throw new ValidationException("invalid_premium_amount", "Policy premium amount must be greater than zero.");
         }
     }
 

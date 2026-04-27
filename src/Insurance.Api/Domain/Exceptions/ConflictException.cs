@@ -2,8 +2,11 @@ namespace Insurance.Api.Domain.Exceptions;
 
 public class ConflictException : Exception
 {
-    public ConflictException(string message)
+    public string Code { get; }
+
+    public ConflictException(string code, string message)
         : base(message)
     {
+        Code = code;
     }
 }

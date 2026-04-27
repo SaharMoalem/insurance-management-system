@@ -50,7 +50,7 @@ public class CustomerService : ICustomerService
 
         if (customer is null)
         {
-            throw new NotFoundException($"Customer with id '{id}' was not found.");
+            throw new NotFoundException("customer_not_found", $"Customer with id '{id}' was not found.");
         }
 
         return Map(customer);
@@ -63,7 +63,7 @@ public class CustomerService : ICustomerService
 
         if (customer is null)
         {
-            throw new NotFoundException($"Customer with id '{id}' was not found.");
+            throw new NotFoundException("customer_not_found", $"Customer with id '{id}' was not found.");
         }
 
         var normalizedEmail = NormalizeEmail(request.Email);
@@ -84,7 +84,16 @@ public class CustomerService : ICustomerService
 
         if (customer is null)
         {
-            throw new NotFoundException($"Customer with id '{id}' was not found.");
+            throw new NotFoundException("customer_not_found", $"Customer with id '{id}' was not found.");
+        }
+
+        var hasRelatedPolicies = await _dbContext.Policies
+            .AnyAsync(x => x.CustomerId == id, cancellationToken);
+        if (hasRelatedPolicies)
+        {
+            throw new ConflictException(
+                "customer_has_active_policies",
+                $"Customer with id '{id}' cannot be deleted because related policies exist.");
         }
 
         _dbContext.Customers.Remove(customer);
@@ -102,7 +111,7 @@ public class CustomerService : ICustomerService
         var exists = await query.AnyAsync(x => x.Email == email, cancellationToken);
         if (exists)
         {
-            throw new ConflictException($"A customer with email '{email}' already exists.");
+            throw new ConflictException("duplicate_email", $"A customer with email '{email}' already exists.");
         }
     }
 

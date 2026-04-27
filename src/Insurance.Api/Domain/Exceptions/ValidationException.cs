@@ -2,8 +2,11 @@ namespace Insurance.Api.Domain.Exceptions;
 
 public class ValidationException : Exception
 {
-    public ValidationException(string message)
+    public string Code { get; }
+
+    public ValidationException(string code, string message)
         : base(message)
     {
+        Code = code;
     }
 }

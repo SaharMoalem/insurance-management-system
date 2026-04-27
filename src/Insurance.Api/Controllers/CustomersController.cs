@@ -1,5 +1,4 @@
 using Insurance.Api.Contracts.Customers;
-using Insurance.Api.Domain.Exceptions;
 using Insurance.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,15 +20,8 @@ public class CustomersController : ControllerBase
         [FromBody] CreateCustomerRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var created = await _customerService.CreateAsync(request, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-        }
-        catch (ConflictException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
+        var created = await _customerService.CreateAsync(request, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     [HttpGet]
@@ -42,15 +34,8 @@ public class CustomersController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<CustomerResponse>> GetById(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var customer = await _customerService.GetByIdAsync(id, cancellationToken);
-            return Ok(customer);
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var customer = await _customerService.GetByIdAsync(id, cancellationToken);
+        return Ok(customer);
     }
 
     [HttpPut("{id:int}")]
@@ -59,32 +44,14 @@ public class CustomersController : ControllerBase
         [FromBody] UpdateCustomerRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var updated = await _customerService.UpdateAsync(id, request, cancellationToken);
-            return Ok(updated);
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (ConflictException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
+        var updated = await _customerService.UpdateAsync(id, request, cancellationToken);
+        return Ok(updated);
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            await _customerService.DeleteAsync(id, cancellationToken);
-            return NoContent();
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        await _customerService.DeleteAsync(id, cancellationToken);
+        return NoContent();
     }
 }
