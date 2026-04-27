@@ -18,7 +18,8 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
 
         builder.Property(x => x.Email)
             .IsRequired()
-            .HasMaxLength(320);
+            .HasMaxLength(320)
+            .UseCollation("NOCASE");
 
         builder.Property(x => x.PhoneNumber)
             .HasMaxLength(30);

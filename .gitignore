@@ -2,6 +2,11 @@
 **/bin/
 **/obj/
 
+# Local SQLite database
+src/Insurance.Api/insurance.db
+src/Insurance.Api/insurance.db-shm
+src/Insurance.Api/insurance.db-wal
+
 # User/IDE artifacts
 .vs/
 *.user
