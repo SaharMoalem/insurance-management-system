@@ -93,8 +93,3 @@ To scale this design to 1M+ policies, the next steps would be:
    - Use background jobs/queues for non-critical workflows and async processing.
    - Add caching for read-heavy endpoints (where appropriate).
    - Scale horizontally behind a load balancer.
-
-5. **Operational readiness**
-   - Add migration strategy for zero/low-downtime deployments.
-   - Expand automated test coverage (integration tests, contract tests).
-   - Add security hardening (rate limiting, secrets management, audit logging).
